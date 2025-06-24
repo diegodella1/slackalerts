@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
+import { DEFAULT_WEBHOOK_URL } from '@/lib/validation/rule';
 import { ArrowLeft, Save, Bell, Settings } from 'lucide-react';
 
 export function EnhancedRuleForm() {
@@ -21,7 +22,6 @@ export function EnhancedRuleForm() {
     value: '',
     window_minutes: 5,
     message_template: 'Bitcoin price alert: {{condition_type}} {{value}} at {{price}}',
-    webhook_url: '',
     enabled: true
   });
   
@@ -34,7 +34,7 @@ export function EnhancedRuleForm() {
     const urlParams = new URLSearchParams(window.location.search);
     const updates: Record<string, string | number> = {};
     
-    ['name', 'condition_type', 'value', 'window_minutes', 'message_template', 'webhook_url'].forEach(key => {
+    ['name', 'condition_type', 'value', 'window_minutes', 'message_template'].forEach(key => {
       const value = urlParams.get(key);
       if (value) {
         if (key === 'value' || key === 'window_minutes') {
@@ -96,7 +96,7 @@ export function EnhancedRuleForm() {
           value: parseFloat(formData.value),
           window_minutes: formData.window_minutes,
           message_template: formData.message_template,
-          webhook_url: formData.webhook_url || null,
+          webhook_url: DEFAULT_WEBHOOK_URL,
           enabled: formData.enabled
         });
 
@@ -275,18 +275,9 @@ export function EnhancedRuleForm() {
                 </p>
               </div>
 
-              <div>
-                <Label htmlFor="webhook_url">Slack Webhook URL (Optional)</Label>
-                <Input
-                  id="webhook_url"
-                  type="url"
-                  value={formData.webhook_url}
-                  onChange={(e) => handleInputChange('webhook_url', e.target.value)}
-                  placeholder="https://hooks.slack.com/services/..."
-                  className="mt-1"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Leave empty to only show alerts in the dashboard
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Slack Integration:</strong> All alerts will be sent to the configured Slack channel automatically.
                 </p>
               </div>
 

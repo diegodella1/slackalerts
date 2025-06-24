@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Default webhook URL for all alerts
+export const DEFAULT_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+
 // Simplified condition types
 export const conditionTypeSchema = z.enum([
   'price_above',
@@ -22,7 +25,7 @@ export const ruleSchema = z.object({
   value: z.number().min(0, 'Value must be greater than 0'),
   window_minutes: z.number().min(1, 'Time window must be at least 1 minute').default(5),
   message_template: z.string().min(1, 'Message template is required'),
-  webhook_url: z.string().url('Invalid webhook URL').optional().or(z.literal('')),
+  webhook_url: z.string().default(DEFAULT_WEBHOOK_URL),
   enabled: z.boolean().default(true),
   user_id: z.string().optional(),
 });
