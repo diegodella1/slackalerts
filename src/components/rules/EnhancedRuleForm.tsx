@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
-import { DEFAULT_WEBHOOK_URL } from '@/lib/validation/rule';
 import { ArrowLeft, Save, Bell, Settings } from 'lucide-react';
 
 export function EnhancedRuleForm() {
@@ -96,7 +95,6 @@ export function EnhancedRuleForm() {
           value: parseFloat(formData.value),
           window_minutes: formData.window_minutes,
           message_template: formData.message_template,
-          webhook_url: DEFAULT_WEBHOOK_URL,
           enabled: formData.enabled
         });
 

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { DEFAULT_WEBHOOK_URL } from '@/lib/validation/rule';
 import axios from 'axios';
 
 const ROXOM_API_URL = 'https://rtvapi.roxom.com/btc/info?apiKey=60be7d11-ec67-4ac0-9241-da1cbdcba73d';
@@ -102,9 +101,9 @@ async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: num
           let webhookSent = false;
           
           // Send webhook if configured
-          if (rule.webhook_url || DEFAULT_WEBHOOK_URL) {
+          const webhookUrl = rule.webhook_url || process.env.SLACK_WEBHOOK_URL;
+          if (webhookUrl) {
             try {
-              const webhookUrl = rule.webhook_url || DEFAULT_WEBHOOK_URL;
               await axios.post(webhookUrl, {
                 text: alertMessage,
                 price: currentPrice,
