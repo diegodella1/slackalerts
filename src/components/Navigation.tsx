@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Bell, TrendingUp, Settings, Home } from 'lucide-react';
+import { Bell, TrendingUp, Settings, Home, Cog } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -15,6 +15,7 @@ export function Navigation() {
     { href: '/price', label: 'Price', icon: TrendingUp },
     { href: '/rules', label: 'Rules', icon: Settings },
     { href: '/alerts', label: 'Alerts', icon: Bell },
+    { href: '/settings', label: 'Settings', icon: Cog },
   ];
 
   return (

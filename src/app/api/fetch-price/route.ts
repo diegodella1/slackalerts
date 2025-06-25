@@ -17,12 +17,56 @@ function parsePriceString(priceString: string) {
   return { price, change, changePercent };
 }
 
+async function sendWebhookNotification(webhookUrl: string, message: string, price: number, changePercent: number | null) {
+  try {
+    const payload = {
+      text: message,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: message
+          }
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `💰 Current Price: $${price.toLocaleString()} | 📈 Change: ${changePercent ? changePercent.toFixed(2) + '%' : 'N/A'}`
+            }
+          ]
+        }
+      ]
+    };
+
+    await axios.post(webhookUrl, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 5000
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending webhook:', error);
+    return false;
+  }
+}
+
 async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: number, currentChangePercent: number | null) {
   try {
-    // Get all active rules
+    // Get all active rules with their webhooks
     const { data: rules, error } = await supabase
       .from('rules')
-      .select('*')
+      .select(`
+        *,
+        webhooks (
+          id,
+          url,
+          type,
+          name
+        )
+      `)
       .eq('enabled', true);
     
     if (error || !rules) {
@@ -44,10 +88,11 @@ async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: num
           if (currentPrice > ruleValue) {
             shouldTrigger = true;
             alertMessage = rule.message_template
-              .replace('{price}', currentPrice.toLocaleString())
-              .replace('{target}', ruleValue.toLocaleString())
-              .replace('{change}', currentChangePercent ? currentChangePercent.toFixed(2) : '0')
-              .replace('{timestamp}', new Date().toLocaleString());
+              .replace(/\{\{price\}\}/g, currentPrice.toLocaleString())
+              .replace(/\{\{condition_type\}\}/g, 'Price Above')
+              .replace(/\{\{value\}\}/g, ruleValue.toLocaleString())
+              .replace(/\{\{window_minutes\}\}/g, rule.window_minutes.toString())
+              .replace(/\{\{timestamp\}\}/g, new Date().toLocaleString());
           }
           break;
           
@@ -55,10 +100,11 @@ async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: num
           if (currentPrice < ruleValue) {
             shouldTrigger = true;
             alertMessage = rule.message_template
-              .replace('{price}', currentPrice.toLocaleString())
-              .replace('{target}', ruleValue.toLocaleString())
-              .replace('{change}', currentChangePercent ? currentChangePercent.toFixed(2) : '0')
-              .replace('{timestamp}', new Date().toLocaleString());
+              .replace(/\{\{price\}\}/g, currentPrice.toLocaleString())
+              .replace(/\{\{condition_type\}\}/g, 'Price Below')
+              .replace(/\{\{value\}\}/g, ruleValue.toLocaleString())
+              .replace(/\{\{window_minutes\}\}/g, rule.window_minutes.toString())
+              .replace(/\{\{timestamp\}\}/g, new Date().toLocaleString());
           }
           break;
           
@@ -66,10 +112,12 @@ async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: num
           if (currentChangePercent && currentChangePercent > ruleValue) {
             shouldTrigger = true;
             alertMessage = rule.message_template
-              .replace('{price}', currentPrice.toLocaleString())
-              .replace('{target}', ruleValue.toString())
-              .replace('{change}', currentChangePercent.toFixed(2))
-              .replace('{timestamp}', new Date().toLocaleString());
+              .replace(/\{\{price\}\}/g, currentPrice.toLocaleString())
+              .replace(/\{\{condition_type\}\}/g, 'Price Increase')
+              .replace(/\{\{value\}\}/g, ruleValue.toString())
+              .replace(/\{\{variation\}\}/g, currentChangePercent.toFixed(2))
+              .replace(/\{\{window_minutes\}\}/g, rule.window_minutes.toString())
+              .replace(/\{\{timestamp\}\}/g, new Date().toLocaleString());
           }
           break;
           
@@ -77,17 +125,19 @@ async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: num
           if (currentChangePercent && currentChangePercent < -ruleValue) {
             shouldTrigger = true;
             alertMessage = rule.message_template
-              .replace('{price}', currentPrice.toLocaleString())
-              .replace('{target}', ruleValue.toString())
-              .replace('{change}', Math.abs(currentChangePercent).toFixed(2))
-              .replace('{timestamp}', new Date().toLocaleString());
+              .replace(/\{\{price\}\}/g, currentPrice.toLocaleString())
+              .replace(/\{\{condition_type\}\}/g, 'Price Decrease')
+              .replace(/\{\{value\}\}/g, ruleValue.toString())
+              .replace(/\{\{variation\}\}/g, Math.abs(currentChangePercent).toFixed(2))
+              .replace(/\{\{window_minutes\}\}/g, rule.window_minutes.toString())
+              .replace(/\{\{timestamp\}\}/g, new Date().toLocaleString());
           }
           break;
       }
       
       if (shouldTrigger) {
         // Save alert to database
-        const { error: alertError } = await supabase
+        const { data: alertData, error: alertError } = await supabase
           .from('alerts_sent')
           .insert([{
             rule_id: rule.id,
@@ -95,42 +145,55 @@ async function checkAndTriggerAlerts(supabase: SupabaseClient, currentPrice: num
             price_at_trigger: currentPrice,
             message: alertMessage,
             webhook_sent: false
-          }]);
+          }])
+          .select()
+          .single();
         
-        if (!alertError) {
+        if (!alertError && alertData) {
           let webhookSent = false;
+          let webhookResponse = '';
           
           // Send webhook if configured
-          const webhookUrl = rule.webhook_url || process.env.SLACK_WEBHOOK_URL;
-          if (webhookUrl) {
+          if (rule.webhook_id && rule.webhooks) {
             try {
-              await axios.post(webhookUrl, {
-                text: alertMessage,
-                price: currentPrice,
-                variation: currentChangePercent,
-                timestamp: new Date().toISOString()
-              }, {
-                headers: { 'Content-Type': 'application/json' }
-              });
+              const webhookSuccess = await sendWebhookNotification(
+                rule.webhooks.url,
+                alertMessage,
+                currentPrice,
+                currentChangePercent
+              );
               
-              webhookSent = true;
+              webhookSent = webhookSuccess;
+              webhookResponse = webhookSuccess ? 'Webhook sent successfully' : 'Webhook failed';
               
               // Update alert with webhook status
               await supabase
                 .from('alerts_sent')
-                .update({ webhook_sent: true })
-                .eq('rule_id', rule.id)
-                .gte('triggered_at', new Date(Date.now() - 60000).toISOString()); // Last minute
+                .update({ 
+                  webhook_sent: webhookSent,
+                  webhook_response: webhookResponse
+                })
+                .eq('id', alertData.id);
                 
             } catch (webhookError) {
               console.error('Error sending webhook:', webhookError);
+              webhookResponse = `Webhook error: ${webhookError}`;
+              
+              await supabase
+                .from('alerts_sent')
+                .update({ 
+                  webhook_sent: false,
+                  webhook_response: webhookResponse
+                })
+                .eq('id', alertData.id);
             }
           }
           
           triggeredAlerts.push({
             rule: rule.name,
             message: alertMessage,
-            webhook_sent: webhookSent
+            webhook_sent: webhookSent,
+            webhook_name: rule.webhooks?.name || 'None'
           });
         }
       }
@@ -198,7 +261,7 @@ export async function POST() {
   } catch (error) {
     console.error('❌ Error in fetch-price API:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch price data' },
       { status: 500 }
     );
   }
@@ -208,41 +271,31 @@ export async function GET() {
   try {
     const supabase = await createClient();
     
-    // Get current price from history (latest entry)
-    const { data: priceHistory, error } = await supabase
+    // Get latest price from database
+    const { data: latestPrice, error } = await supabase
       .from('price_history')
       .select('*')
       .order('timestamp', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .single();
     
-    if (error) {
-      console.error('Error getting price history:', error);
-      return NextResponse.json(
-        { error: 'Error retrieving price data' },
-        { status: 500 }
-      );
-    }
-    
-    if (!priceHistory || priceHistory.length === 0) {
+    if (error || !latestPrice) {
       return NextResponse.json(
         { error: 'No price data available' },
         { status: 404 }
       );
     }
     
-    const latestPrice = priceHistory[0];
-    
     return NextResponse.json({
-      success: true,
       price: latestPrice.price,
       timestamp: latestPrice.timestamp,
       source: latestPrice.source
     });
     
   } catch (error) {
-    console.error('Error in GET fetch-price API:', error);
+    console.error('Error getting latest price:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to get price data' },
       { status: 500 }
     );
   }

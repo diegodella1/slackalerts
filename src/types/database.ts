@@ -14,6 +14,7 @@ export type Rule = {
   window_minutes: number;
   message_template: string;
   webhook_url?: string;
+  webhook_id?: string;
   enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -52,4 +53,24 @@ export type RuleTemplate = {
   default_window_minutes: number;
   default_message_template: string;
   created_at: string;
+};
+
+export type Webhook = {
+  id: string;
+  user_id: string;
+  name: string;
+  url: string;
+  type: 'slack' | 'discord' | 'webhook';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RefreshSettings = {
+  id: string;
+  user_id: string;
+  refresh_interval_seconds: 10 | 30;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }; 

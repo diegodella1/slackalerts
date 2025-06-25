@@ -5,6 +5,14 @@ function getSupabaseConfig() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  // During build time, return dummy values to prevent build errors
+  if (process.env.NODE_ENV === 'production' && (!supabaseUrl || !supabaseKey)) {
+    return {
+      supabaseUrl: 'https://dummy.supabase.co',
+      supabaseKey: 'dummy-key'
+    }
+  }
+
   if (!supabaseUrl || !supabaseKey) {
     throw new Error(
       'Missing Supabase environment variables. Please check your .env.local file.'
