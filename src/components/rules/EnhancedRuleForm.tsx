@@ -30,22 +30,24 @@ export function EnhancedRuleForm() {
 
   // Load URL parameters if editing
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const updates: Record<string, string | number> = {};
-    
-    ['name', 'condition_type', 'value', 'window_minutes', 'message_template'].forEach(key => {
-      const value = urlParams.get(key);
-      if (value) {
-        if (key === 'value' || key === 'window_minutes') {
-          updates[key] = parseFloat(value);
-        } else {
-          updates[key] = value;
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const updates: Record<string, string | number> = {};
+      
+      ['name', 'condition_type', 'value', 'window_minutes', 'message_template'].forEach(key => {
+        const value = urlParams.get(key);
+        if (value) {
+          if (key === 'value' || key === 'window_minutes') {
+            updates[key] = parseFloat(value);
+          } else {
+            updates[key] = value;
+          }
         }
+      });
+      
+      if (Object.keys(updates).length > 0) {
+        setFormData(prev => ({ ...prev, ...updates }));
       }
-    });
-    
-    if (Object.keys(updates).length > 0) {
-      setFormData(prev => ({ ...prev, ...updates }));
     }
   }, []);
 

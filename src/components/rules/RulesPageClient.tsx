@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +25,7 @@ export type Rule = {
 };
 
 export function RulesPageClient() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [rules, setRules] = useState<Rule[]>([]);
@@ -74,7 +76,7 @@ export function RulesPageClient() {
       }
     });
     
-    window.location.href = `/rules/new?${params.toString()}`;
+    router.push(`/rules/new?${params.toString()}`);
   };
 
   // Filter rules based on search and status

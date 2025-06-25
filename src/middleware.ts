@@ -3,6 +3,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   try {
+    // Si no hay URL válida, continuar sin redirección
+    if (!request.url || typeof request.url !== 'string' || !request.url.startsWith('http')) {
+      return NextResponse.next();
+    }
+
     const { supabase, response } = createClient(request)
 
     // Refresh session if expired - required for Server Components
@@ -31,10 +36,12 @@ export async function middleware(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Middleware error:', error)
-    
-    // If there's an error, redirect to login
-    const redirectUrl = new URL('/login', request.url)
-    return NextResponse.redirect(redirectUrl)
+    // Si no hay URL válida, continuar
+    if (request.url && typeof request.url === 'string' && request.url.startsWith('http')) {
+      const redirectUrl = new URL('/login', request.url)
+      return NextResponse.redirect(redirectUrl)
+    }
+    return NextResponse.next();
   }
 }
 
