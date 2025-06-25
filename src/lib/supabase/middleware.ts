@@ -1,6 +1,19 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
+function getSupabaseConfig() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      'Missing Supabase environment variables. Please check your .env.local file.'
+    )
+  }
+
+  return { supabaseUrl, supabaseKey }
+}
+
 export const createClient = (request: NextRequest) => {
   // Create an unmodified response
   let response = NextResponse.next({
@@ -9,9 +22,11 @@ export const createClient = (request: NextRequest) => {
     },
   })
 
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig()
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {

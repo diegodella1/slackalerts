@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RuleFormValues } from '@/lib/validation/rule';
 
 export type Rule = {
   id: string;
@@ -64,7 +65,7 @@ export function RulesPageClient() {
     fetchRules();
   }, [supabase]);
 
-  const handleTemplateSelect = (template: { value: number; name: string; condition_type: string; window_minutes: number; message_template: string; enabled: boolean; description?: string; webhook_url?: string; user_id?: string }) => {
+  const handleTemplateSelect = (template: RuleFormValues) => {
     // Navigate to the new rule page with template data
     const params = new URLSearchParams();
     Object.entries(template).forEach(([key, value]) => {

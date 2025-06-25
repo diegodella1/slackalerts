@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Github, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
+import { Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function LoginPage() {
@@ -30,43 +30,10 @@ export default function LoginPage() {
     password: ''
   })
 
-  const handleGitHubLogin = async () => {
-    setIsLoading(true)
-    setMessage(null)
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      })
-      
-      if (error) {
-        setMessage({ type: 'error', text: error.message })
-      }
-    } catch {
-      setMessage({ type: 'error', text: 'An unexpected error occurred' })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setMessage(null)
-
-    // Validate email domain
-    const emailDomain = registerData.email.split('@')[1]
-    if (!['roxom.com', 'roxom.tv'].includes(emailDomain)) {
-      setMessage({ 
-        type: 'error', 
-        text: 'Only @roxom.com and @roxom.tv email addresses are allowed' 
-      })
-      setIsLoading(false)
-      return
-    }
 
     // Validate password
     if (registerData.password.length < 6) {
@@ -179,7 +146,7 @@ export default function LoginPage() {
                       <Input
                         id="login-email"
                         type="email"
-                        placeholder="your@roxom.com"
+                        placeholder="your@email.com"
                         value={loginData.email}
                         onChange={(e) => handleInputChange('login', 'email', e.target.value)}
                         className="pl-10"
@@ -208,25 +175,6 @@ export default function LoginPage() {
                     {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleGitHubLogin} 
-                  variant="outline" 
-                  className="w-full" 
-                  disabled={isLoading}
-                >
-                  <Github className="w-4 h-4 mr-2" />
-                  Continue with GitHub
-                </Button>
               </TabsContent>
 
               {/* Register Tab */}
@@ -255,16 +203,13 @@ export default function LoginPage() {
                       <Input
                         id="register-email"
                         type="email"
-                        placeholder="your@roxom.com or your@roxom.tv"
+                        placeholder="your@email.com"
                         value={registerData.email}
                         onChange={(e) => handleInputChange('register', 'email', e.target.value)}
                         className="pl-10"
                         required
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Only @roxom.com and @roxom.tv email addresses are allowed
-                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -303,25 +248,6 @@ export default function LoginPage() {
                     {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleGitHubLogin} 
-                  variant="outline" 
-                  className="w-full" 
-                  disabled={isLoading}
-                >
-                  <Github className="w-4 h-4 mr-2" />
-                  Continue with GitHub
-                </Button>
               </TabsContent>
             </Tabs>
 

@@ -1,12 +1,26 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+function getSupabaseConfig() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      'Missing Supabase environment variables. Please check your .env.local file.'
+    )
+  }
+
+  return { supabaseUrl, supabaseKey }
+}
+
 export async function createClient() {
   const cookieStore = await cookies()
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig()
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {
@@ -37,10 +51,11 @@ export async function createClient() {
 
 export async function createActionClient() {
   const cookieStore = await cookies()
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig()
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {
